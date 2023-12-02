@@ -1,0 +1,116 @@
+// src/app/github.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class GithubService {
+  private apiUrl = 'https://api.github.com';
+
+  constructor(private http: HttpClient) {}
+
+  getUserRepos(username: string): Observable<any[]> {
+    const url = `${this.apiUrl}/users/${username}/repos`;
+    return this.http.get<any[]>(url);
+  }
+}
+// src/app/user-input/user-input.component.ts
+import { Component } from '@angular/core';
+import { GithubService } from '../github.service';
+
+@Component({
+  selector: 'app-user-input',
+  template: `
+    <form (submit)="getUserRepos()">
+      <label for="username">GitHub Username:</label>
+      <input id="username" [(ngModel)]="username" name="username" required />
+      <button type="submit">Get Repositories</button>
+    </form>
+  `,
+})
+export class UserInputComponent {
+  username: string = '';
+
+  constructor(private githubService: GithubService) {}
+
+  getUserRepos() {
+    this.githubService.getUserRepos(this.username).subscribe(
+      (repos) => {
+        // Handle successful response - e.g., update another component with the repo list
+        console.log('Repositories:', repos);
+      },
+      (error) => {
+        // Handle error - e.g., display an error message
+        console.error('Error fetching repositories:', error);
+      }
+    );
+  }
+}
+// src/app/repo-list/repo-list.component.ts
+import { Component, Input } from '@angular/core';
+
+@Component({
+  selector: 'app-repo-list',
+  template: `
+    <div *ngIf="repos.length > 0">
+      <h2>Repositories:</h2>
+      <ul>
+        <li *ngFor="let repo of repos">
+          <a [href]="repo.html_url" target="_blank">{{ repo.name }}</a>
+        </li>
+      </ul>
+    </div>
+    <div *ngIf="repos.length === 0">
+      <p>No repositories found.</p>
+    </div>
+  `,
+})
+export class RepoListComponent {
+  @Input() repos: any[] = [];
+}
+// src/app/app.module.ts
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { UserInputComponent } from './user-input/user-input.component';
+import { RepoListComponent } from './repo-list/repo-list.component';
+
+@NgModule({
+  declarations: [AppComponent, UserInputComponent, RepoListComponent],
+  imports: [BrowserModule, FormsModule, HttpClientModule, AppRoutingModule],
+  providers: [],
+  bootstrap: [AppComponent],
+})
+export class AppModule {}
+// src/app/app-routing.module.ts
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { UserInputComponent } from './user-input/user-input.component';
+import { RepoListComponent } from './repo-list/repo-list.component';
+
+const routes: Routes = [
+  { path: '', redirectTo: '/user-input', pathMatch: 'full' },
+  { path: 'user-input', component: UserInputComponent },
+  { path: 'repo-list', component: RepoListComponent },
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule],
+})
+export class AppRoutingModule {}
+<!-- src/app/app.component.html -->
+<router-outlet></router-outlet>
+// src/app/app.component.ts
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  template: '<router-outlet></router-outlet>',
+})
+export class AppComponent {}
